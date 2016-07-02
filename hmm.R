@@ -11,6 +11,12 @@ transition_mat_update = function(x){
 }
 
 
+forward_backward_rcpp = function(y, pi, A, B, k, n){
+  # forward
+  obj = forward_backward_fast(pi, A, B, y, k, n)
+  return(list(P = obj$P, x_draw = factor(obj$x_draw, levels = 1:k)))
+}
+
 forward_backward = function(y, pi, A, B, k, n){
   # forward
   P = vector("list", n)
@@ -88,5 +94,8 @@ identify_states_KL = function(P, Q){
     distances = apply(P, 1, function(p)KL_distance(p, Q[i, ]))
     states[i] = which.min(distances)
   }
+  # if some of the states coincide, change them randomly
+  # if(length(setdiff(1:n_states, states)) > 0) print(states)
+  # states[duplicated(states)] = setdiff(1:n_states, states)
   return(states)
 }

@@ -1,30 +1,36 @@
+library(reshape)
+library(ggplot2)
+
 source("generate_data.R")
 source("hmm.R")
+Rcpp::sourceCpp("forward_backward.cpp")
 
 # generate HMM with x in {1, 2, 3} and y in {1, 2, 3, 4}
-alpha = c(1, 1, 1)
-# starting_probs
-pi = c(0.3, 0.5, 0.2)
-# hidden_transition
-A = rdirichlet(3, alpha)
-# obs_transition
-B = rdirichlet(length(pi), rep(1, 4))
+pi = c(1/3, 1/3, 1/3)
+A = rbind(c(0.95, 0, 0.05), c(0.05, 0.95, 0), c(0, 0.05, 0.95))
+# B_true = rbind(c(0, 0.1, 0.45-0.1, 0.45+0.1), c(0, 0.1, 0.45, 0.45), c(0.6, 0.3, 0.1, 0))
+B = rbind(c(0.5, 0, 0, 0.5), c(0, 0, 0.5, 0.5), c(0.6, 0.4, 0, 0))
 
-n = 100
-alpha0 = 1
+
+n = 2000
 hmm_obs = generate_discrete_HMM(n, pi, A, B)
 y = hmm_obs$y
+df = data.frame(t = 1:n, x = hmm_obs$x, y = hmm_obs$y)
+df.m = melt(df, id.vars = "t")
+ggplot(df.m, aes(t, value, group=1)) + 
+  geom_path() + geom_point(aes(col=value)) + 
+  facet_wrap(~ variable, nrow=2) + 
+  theme_bw()
 
-# starting values for the parameters pi, A, B
-pi_params = rep(alpha0, 3)
-A_params = matrix(alpha0, 3, 3)
-B_params = matrix(alpha0, 3, 4)
-pi = rdirichlet(1, pi_params)
-A = rdirichlet_mat(A_params)
-B = rdirichlet_mat(B_params)
 
-res = gibbs_sampling_hmm(y, pi, A, B, max_iter = 1000)
+res = gibbs_sampling_hmm(y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1000)
+lapply(res$trace_A[950:1000], round, 2)
+lapply(res$trace_B[950:1000], round, 2)
+
+
+latent.m = melt(res$trace_x[900:1000, ])
+ggplot(latent.m, aes(X2, value)) + geom_path() + facet_wrap(~ X1)
+
 # average number of matches with the true x (calculate for each mcmc iteration)
 apply(res$trace_x, 1, function(x)mean(x == hmm_obs$x))
-# marginal distribution
-res$marginal_distr
+
