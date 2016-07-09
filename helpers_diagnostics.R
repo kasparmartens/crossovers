@@ -9,7 +9,7 @@ visualise_hidden_states = function(trace_x, true_x){
     geom_path(aes(t, factor(value), group=variable), df.m, col="grey50") + 
     # geom_path(aes(t, x, group=1), df_true, linetype="dashed") + 
     geom_point(aes(t, x, col=x), df_true) + 
-    theme_bw()
+    theme_bw() + ylab("Hidden state")
   return(p)
 }
 

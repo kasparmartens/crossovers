@@ -111,6 +111,8 @@ relabel_seq = function(x, states){
 
 KL_distance = function(p, q) sum(ifelse(p == 0, 0, p * log(p / (q+1e-16))))
 
+sample_fix <- function(x, ...) x[sample(length(x), ...)]
+
 identify_states_KL = function(P, Q){
   n_states = nrow(Q)
   states = rep(NA, n_states)
@@ -121,7 +123,7 @@ identify_states_KL = function(P, Q){
   # if some of the states coincide, change them randomly
   if(length(setdiff(1:n_states, states)) > 0){
     print(states)
-    states[duplicated(states)] = sample(setdiff(1:n_states, states))
+    states[duplicated(states)] = sample_fix(setdiff(1:n_states, states))
   }
   return(states)
 }

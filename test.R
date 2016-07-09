@@ -16,14 +16,13 @@ B = rbind(c(0.5, 0, 0, 0.5), c(0, 0, 0.5, 0.5), c(0.6, 0.4, 0, 0))
 
 n = 500
 hmm_obs = generate_discrete_HMM(n, pi, A, B)
-y = hmm_obs$y
 df_true = data.frame(t = 1:n, x = hmm_obs$x)
 ggplot(df_true, aes(t, x, group=1)) + 
   geom_path() + geom_point(aes(col = x)) + 
-  theme_bw()
+  theme_bw() + xlab("") + ggtitle("True hidden sequence")
 
 
-res = gibbs_sampling_hmm(y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1500)
+res = gibbs_sampling_hmm(y = hmm_obs$y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1500)
 res_relabelled = match_states(res$trace_x, res$trace_A, res$trace_B, B)
 
 # visualise draws from the posterior of hidden states
