@@ -1,36 +1,38 @@
-library(reshape)
+library(reshape2)
 library(ggplot2)
+library(dplyr)
 
 source("generate_data.R")
 source("hmm.R")
+source("helpers_diagnostics.R")
 Rcpp::sourceCpp("forward_backward.cpp")
 
 # generate HMM with x in {1, 2, 3} and y in {1, 2, 3, 4}
 pi = c(1/3, 1/3, 1/3)
-A = rbind(c(0.95, 0, 0.05), c(0.05, 0.95, 0), c(0, 0.05, 0.95))
+A = rbind(c(0.9, 0, 0.1), c(0.1, 0.9, 0), c(0, 0.1, 0.9))
 # B_true = rbind(c(0, 0.1, 0.45-0.1, 0.45+0.1), c(0, 0.1, 0.45, 0.45), c(0.6, 0.3, 0.1, 0))
 B = rbind(c(0.5, 0, 0, 0.5), c(0, 0, 0.5, 0.5), c(0.6, 0.4, 0, 0))
 
 
-n = 2000
+n = 500
 hmm_obs = generate_discrete_HMM(n, pi, A, B)
 y = hmm_obs$y
-df = data.frame(t = 1:n, x = hmm_obs$x, y = hmm_obs$y)
-df.m = melt(df, id.vars = "t")
-ggplot(df.m, aes(t, value, group=1)) + 
-  geom_path() + geom_point(aes(col=value)) + 
-  facet_wrap(~ variable, nrow=2) + 
+df_true = data.frame(t = 1:n, x = hmm_obs$x)
+ggplot(df_true, aes(t, x, group=1)) + 
+  geom_path() + geom_point(aes(col = x)) + 
   theme_bw()
 
 
-res = gibbs_sampling_hmm(y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1000)
-lapply(res$trace_A[950:1000], round, 2)
-lapply(res$trace_B[950:1000], round, 2)
+res = gibbs_sampling_hmm(y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1500)
+res_relabelled = match_states(res$trace_x, res$trace_A, res$trace_B, B)
 
+# visualise draws from the posterior of hidden states
+print(visualise_hidden_states(res_relabelled$trace_x, hmm_obs$x))
 
-latent.m = melt(res$trace_x[900:1000, ])
-ggplot(latent.m, aes(X2, value)) + geom_path() + facet_wrap(~ X1)
+# posterior distribution of transition probabilities
+print(visualise_transition_mat(res_relabelled$trace_A, A))
+print(visualise_transition_mat(res_relabelled$trace_B, B))
 
-# average number of matches with the true x (calculate for each mcmc iteration)
-apply(res$trace_x, 1, function(x)mean(x == hmm_obs$x))
+# accuracy and switch rate
+print(visualise_accuracy_and_switch_rate(res_relabelled$trace_x, hmm_obs$x))
 

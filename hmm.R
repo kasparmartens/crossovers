@@ -55,8 +55,9 @@ compute_marginal_distribution = function(P_list, k, n){
   return(marginal_distr)
 }
 
-gibbs_sampling_hmm = function(y, n_hidden_states, alpha0 = 0.1, max_iter = 1000){
+gibbs_sampling_hmm = function(y, n_hidden_states, alpha0 = 0.1, max_iter = 1000, burnin = 500){
   if(!is.factor(y)) stop("y must be a factor variable!")
+  if(burnin >= max_iter) stop("burnin too large!")
   n = length(y)
   n_symbols = length(unique(y))
   
@@ -66,7 +67,7 @@ gibbs_sampling_hmm = function(y, n_hidden_states, alpha0 = 0.1, max_iter = 1000)
   A = 0.5 * diag(k) + 0.5*matrix(1/k, k, k)
   B = matrix(1/n_symbols, k, n_symbols)
   
-  trace_x = matrix(0, max_iter, n)
+  trace_x = matrix(0, max_iter-burnin, n)
   trace_A = list()
   trace_B = list()
   for(i in 1:max_iter){
@@ -77,15 +78,38 @@ gibbs_sampling_hmm = function(y, n_hidden_states, alpha0 = 0.1, max_iter = 1000)
     A = rdirichlet_mat(alpha0 + transition_mat_update(res$x_draw))
     B = rdirichlet_mat(alpha0 + table(res$x_draw, y))
     # marginal_distr = marginal_distr + 1/(max_iter)*compute_marginal_distribution(res$Q, k, n)
-    trace_x[i, ] = res$x_draw
-    trace_A[[i]] = A
-    trace_B[[i]] = B
+    if(i > burnin){
+      trace_x[i-burnin, ] = res$x_draw
+      trace_A[[i-burnin]] = A
+      trace_B[[i-burnin]] = B
+    }
     if(i %% 100 == 0) cat("iter", i, "\n")
   }
   return(list(trace_x = trace_x, trace_A = trace_A, trace_B = trace_B))
 }
 
-KL_distance = function(p, q) ifelse(p == 0, 0, sum(p * log(p / q)))
+match_states = function(trace_x, trace_A, trace_B, true_B){
+  for(i in 1:length(trace_B)){
+    states = identify_states_KL(true_B, trace_B[[i]])
+    # relabel matrix B
+    trace_B[[i]][states, ] = trace_B[[i]]
+    # relabel matrix A
+    trace_A[[i]][states, states] = trace_A[[i]]
+    # relabel hidden sequence x
+    trace_x[i, ] = relabel_seq(trace_x[i, ], states)
+  }
+  return(list(trace_x = trace_x, trace_A = trace_A, trace_B = trace_B))
+}
+
+relabel_seq = function(x, states){
+  out = x
+  for(i in 1:length(unique(x))){
+    out[x == i] = states[i]
+  }
+  return(out)
+}
+
+KL_distance = function(p, q) sum(ifelse(p == 0, 0, p * log(p / (q+1e-16))))
 
 identify_states_KL = function(P, Q){
   n_states = nrow(Q)
@@ -95,7 +119,9 @@ identify_states_KL = function(P, Q){
     states[i] = which.min(distances)
   }
   # if some of the states coincide, change them randomly
-  # if(length(setdiff(1:n_states, states)) > 0) print(states)
-  # states[duplicated(states)] = setdiff(1:n_states, states)
+  if(length(setdiff(1:n_states, states)) > 0){
+    print(states)
+    states[duplicated(states)] = sample(setdiff(1:n_states, states))
+  }
   return(states)
 }

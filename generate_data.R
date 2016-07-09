@@ -2,6 +2,7 @@ generate_discrete_HMM = function(n, starting_probs, hidden_transition, obs_trans
   x = rep(NA, n)
   k_hidden = length(starting_probs)
   k_obs = ncol(obs_transition)
+  if((k_hidden != nrow(hidden_transition)) | (k_hidden != ncol(hidden_transition)) | (k_hidden != nrow(obs_transition))) stop("Dimensions do not match")
   x[1] = sample(1:k_hidden, 1)
   for(i in 2:n){
     x[i] = sample(1:k_hidden, 1, prob = hidden_transition[x[i-1], ])
