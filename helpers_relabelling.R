@@ -7,8 +7,10 @@ match_states = function(trace_x, trace_A, trace_B, true_x, k){
       suppressMessages(plyr::mapvalues(trace_x[i, ], 1:k, current_permutation))
     })
     pointwise_acc = sapply(relabelled_x, function(x) mean(true_x == x))
-    states = perms[[which.max(pointwise_acc)]]
-    
+    selected_ind = which.max(pointwise_acc)
+    states = perms[[selected_ind]]
+    # relabel trace_x
+    trace_x[i, ] = relabelled_x[[selected_ind]]
     # relabel matrix B
     trace_B[[i]][states, ] = trace_B[[i]]
     # relabel matrix A
