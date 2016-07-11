@@ -28,7 +28,7 @@ forward_backward = function(y, pi, A, B, k, n){
   }
   # backward 1
   x_draw = rep(NA, n)
-  x_draw[n] = sample(1:k, 1, prob = rowSums(P[[n]]))
+  x_draw[n] = sample(1:k, 1, prob = colSums(P[[n]]))
   for(t in (n-1):1){
     x_draw[t] = sample(1:k, 1, prob = P[[t+1]][, x_draw[t+1]])
   }
@@ -86,44 +86,4 @@ gibbs_sampling_hmm = function(y, n_hidden_states, alpha0 = 0.1, max_iter = 1000,
     if(i %% 100 == 0) cat("iter", i, "\n")
   }
   return(list(trace_x = trace_x, trace_A = trace_A, trace_B = trace_B))
-}
-
-match_states = function(trace_x, trace_A, trace_B, true_B){
-  for(i in 1:length(trace_B)){
-    states = identify_states_KL(true_B, trace_B[[i]])
-    # relabel matrix B
-    trace_B[[i]][states, ] = trace_B[[i]]
-    # relabel matrix A
-    trace_A[[i]][states, states] = trace_A[[i]]
-    # relabel hidden sequence x
-    trace_x[i, ] = relabel_seq(trace_x[i, ], states)
-  }
-  return(list(trace_x = trace_x, trace_A = trace_A, trace_B = trace_B))
-}
-
-relabel_seq = function(x, states){
-  out = x
-  for(i in 1:length(unique(x))){
-    out[x == i] = states[i]
-  }
-  return(out)
-}
-
-KL_distance = function(p, q) sum(ifelse(p == 0, 0, p * log(p / (q+1e-16))))
-
-sample_fix <- function(x, ...) x[sample(length(x), ...)]
-
-identify_states_KL = function(P, Q){
-  n_states = nrow(Q)
-  states = rep(NA, n_states)
-  for(i in 1:n_states){
-    distances = apply(P, 1, function(p)KL_distance(p, Q[i, ]))
-    states[i] = which.min(distances)
-  }
-  # if some of the states coincide, change them randomly
-  if(length(setdiff(1:n_states, states)) > 0){
-    print(states)
-    states[duplicated(states)] = sample_fix(setdiff(1:n_states, states))
-  }
-  return(states)
 }
