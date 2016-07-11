@@ -5,13 +5,14 @@ library(dplyr)
 source("generate_data.R")
 source("hmm.R")
 source("helpers_diagnostics.R")
+source("helpers_relabelling.R")
 Rcpp::sourceCpp("forward_backward.cpp")
 
 # generate HMM with x in {1, 2, 3} and y in {1, 2, 3, 4}
 pi = c(1/3, 1/3, 1/3)
 A = rbind(c(0.9, 0, 0.1), c(0.1, 0.9, 0), c(0, 0.1, 0.9))
-# B_true = rbind(c(0, 0.1, 0.45-0.1, 0.45+0.1), c(0, 0.1, 0.45, 0.45), c(0.6, 0.3, 0.1, 0))
-B = rbind(c(0.5, 0, 0, 0.5), c(0, 0, 0.5, 0.5), c(0.6, 0.4, 0, 0))
+B = rbind(c(0, 0.1, 0.45-0.1, 0.45+0.1), c(0, 0.1, 0.45, 0.45), c(0.6, 0.3, 0.1, 0))
+# B = rbind(c(0.5, 0, 0, 0.5), c(0, 0, 0.5, 0.5), c(0.6, 0.4, 0, 0))
 
 
 n = 500
@@ -22,11 +23,11 @@ ggplot(df_true, aes(t, x, group=1)) +
   theme_bw() + xlab("") + ggtitle("True hidden sequence")
 
 
-res = gibbs_sampling_hmm(y = hmm_obs$y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1500)
-res_relabelled = match_states(res$trace_x, res$trace_A, res$trace_B, B)
+res = gibbs_sampling_hmm(y = hmm_obs$y, n_hidden_states = nrow(A), alpha0 = 0.1, max_iter = 1500, burnin=500)
+res_relabelled = match_states(res$trace_x, res$trace_A, res$trace_B, true_x = hmm_obs$x, k = nrow(A))
 
 # visualise draws from the posterior of hidden states
-print(visualise_hidden_states(res_relabelled$trace_x, hmm_obs$x))
+print(visualise_hidden_states(res_relabelled$trace_x, hmm_obs$x, n_display = 100))
 
 # posterior distribution of transition probabilities
 print(visualise_transition_mat(res_relabelled$trace_A, A))

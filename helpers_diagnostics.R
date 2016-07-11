@@ -1,12 +1,12 @@
-visualise_hidden_states = function(trace_x, true_x){
+visualise_hidden_states = function(trace_x, true_x, n_display = 100){
   n = length(true_x)
-  df.m = data.frame(t(trace_x)) %>%
+  df.m = data.frame(t(trace_x[sample(1:nrow(trace_x), n_display), ])) %>%
     mutate(t = 1:n) %>%
     melt(id.vars = "t")
   df_true = data.frame(t = 1:n, x = true_x)
   
   p = ggplot() + 
-    geom_path(aes(t, factor(value), group=variable), df.m, col="grey50") + 
+    geom_path(aes(t, factor(value), group=variable), df.m, col="grey50", alpha=0.1) + 
     # geom_path(aes(t, x, group=1), df_true, linetype="dashed") + 
     geom_point(aes(t, x, col=x), df_true) + 
     theme_bw() + ylab("Hidden state")
