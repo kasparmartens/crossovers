@@ -13,6 +13,26 @@ visualise_hidden_states = function(trace_x, true_x, n_display = 100){
   return(p)
 }
 
+visualise_hidden_states_parallel_tempering = function(trace_x, true_x, temperatures, n_display = 100){
+  n = length(true_x)
+  temp = do.call("rbind", lapply(1:length(trace_x), function(j){
+    x = res$trace_x[[j]]
+    data.frame(x[sample(1:nrow(trace_x[[1]]), n_display), ], "temperature" = temperatures[j])
+  }))
+  df.m = temp %>%
+    melt(id.vars = c("temperature")) %>%
+    mutate(t = rep(1:n, each=length(temperatures)*n_display))
+  df_true = data.frame(t = 1:n, x = true_x)
+  
+  p = ggplot() + 
+    geom_path(aes(t, factor(value), group=variable), df.m, col="grey50", alpha=0.1) + 
+    # geom_path(aes(t, x, group=1), df_true, linetype="dashed") + 
+    geom_point(aes(t, x, col=x), df_true) + 
+    facet_wrap(~ temperature) + 
+    theme_bw() + ylab("Hidden state")
+  return(p)
+}
+
 summarise_transition_mat = function(trace_mat_list){
   n_row = nrow(trace_mat_list[[1]])
   n_col = ncol(trace_mat_list[[1]])
@@ -28,7 +48,7 @@ summarise_transition_mat = function(trace_mat_list){
   return(df.m)
 }
 
-visualise_transition_mat = function(trace_mat, true_mat){
+visualise_transition_mat = function(trace_mat, true_mat, title = ""){
   df = summarise_transition_mat(trace_mat)
   df2 = summarise_transition_mat(list(true_mat))
   
@@ -36,7 +56,15 @@ visualise_transition_mat = function(trace_mat, true_mat){
     geom_path() + 
     geom_hline(aes(yintercept=value), data=df2, col="red", linetype="dashed") +
     facet_grid(Var1 ~ Var2) + 
-    theme_bw()
+    theme_bw() + ggtitle(title)
+  return(p)
+}
+
+visualise_transition_mat_parallel_tempering = function(trace_mat_list, true_mat, temperatures, ...){
+  plot_list = lapply(1:length(trace_mat_list), function(j){
+    visualise_transition_mat(trace_mat_list[[j]], true_mat, sprintf("Temperature = %s", temperatures[j]))
+  })
+  p = do.call("grid.arrange", c(plot_list, ...))
   return(p)
 }
 

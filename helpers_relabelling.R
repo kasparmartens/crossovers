@@ -19,6 +19,15 @@ match_states = function(trace_x, trace_A, trace_B, true_x, k){
   return(list(trace_x = trace_x, trace_A = trace_A, trace_B = trace_B))
 }
 
+match_states_parallel_tempering = function(trace_x, trace_A, trace_B, true_x, k){
+  res = lapply(1:length(trace_A), function(j){
+    match_states(trace_x[[j]], trace_A[[j]], trace_B[[j]], true_x, k)
+  })
+  return(list(trace_x = lapply(res, function(x)x$trace_x), 
+              trace_A = lapply(res, function(x)x$trace_A), 
+              trace_B = lapply(res, function(x)x$trace_B)))
+}
+
 # match_states = function(trace_x, trace_A, trace_B, true_B){
 #   for(i in 1:length(trace_B)){
 #     states = identify_states_KL(true_B, trace_B[[i]])
