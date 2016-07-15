@@ -55,8 +55,6 @@ print(visualise_hidden_states_parallel_tempering(res_relabelled$trace_x, hmm_obs
 
 ```
 
-For higher temperatures, these plots become useless. 
-
 ### Elements of the transition matrices
 
 
